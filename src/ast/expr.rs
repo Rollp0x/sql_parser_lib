@@ -3,6 +3,8 @@
 pub enum Expr {
     /// 标识符（列名）
     Identifier(String),
+
+    Wildcard,  // * 通配符
     
     /// 字面量（数字、字符串等）
     Literal(Value),
@@ -45,6 +47,12 @@ pub enum Expr {
     LogicalOp {
         op: LogicalOperator,
         expressions: Vec<Expr>,  // 对于 AND/OR 可能有多个表达式
+    },
+
+    /// 一元操作符表达式（如 -x, NOT x）
+    UnaryOp {
+        op: UnaryOperator,
+        expr: Box<Expr>,
     }
 }
 
@@ -62,6 +70,13 @@ pub enum BinaryOperator {
     Multiply, // *
     Divide,   // /
     Like,    // LIKE
+}
+
+/// 一元操作符
+#[derive(Debug, Clone, PartialEq)]
+pub enum UnaryOperator {
+    Plus,    // +
+    Minus,   // -
 }
 
 /// 逻辑操作符
@@ -84,14 +99,14 @@ pub enum Value {
 
 
 /// 表示ORDER BY子句中的表达式
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub struct OrderByExpr {
     pub expr: Expr,    // 允许任何表达式类型
     pub asc: bool,     // true表示ASC，false表示DESC
 }
 
 /// 表示LIMIT子句
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub struct LimitClause {
     /// 要返回的最大行数
     pub limit: u64,

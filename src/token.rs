@@ -19,10 +19,13 @@ pub enum Token {
     Punctuator(char),
     /// 数据类型，例如 VARCHAR(36)。name 为类型名称，length 为可选长度参数
     DataType { name: String, length: Option<String> },
+
+    // 已有的 Token 类型
+    QualifiedIdentifier { qualifier: String, name: String },
 }
 
 const OPERATOR_SET: &[&str] = &["=", "<", ">", "<=", ">=", "!=", "+", "-", "*", "/", "%"];
-const PUNCTUATORS: &[char] = &[',', ';', '(', ')'];
+const PUNCTUATORS: &[char] = &[',', ';', '(', ')','.'];
 
 lazy_static! {
     pub static ref RE_BLOCK: Regex = Regex::new(r"(?s)/\*.*?\*/").unwrap();
@@ -122,7 +125,6 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             }
             continue; // 跳过空单词
         }
-        println!("word: {},length:{}", word, word.len());
         // 如果能作为数据类型识别，则直接处理
         if let Some(t) = try_parse_data_type(word) {
             tokens.push(t);
@@ -183,12 +185,43 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
     
     // 添加一个状态变量，用于跟踪是否在反引号内
     let mut in_backticks = false;
+    // 添加一个状态变量，用于跟踪是否在单引号内
+    let mut in_quotes = false;
     // 用于存储反引号内的内容
     let mut backtick_content = String::new();
+    // 用于存储单引号内的内容
+    let mut quote_content = String::new();
 
     while let Some(ch) = chars.next() {
+        // 
+        if ch == '\'' {
+            if in_quotes {
+                // 结束引号
+                in_quotes = false;
+                tokens.push(Token::StringLiteral(quote_content.clone()));
+                quote_content.clear();
+            } else {
+                // 开始引号
+                if !acc.is_empty() {
+                    // 处理之前的字符
+                    let token = if KEYWORDS.contains(&acc.to_uppercase()) {
+                        Token::Keyword(acc.clone())
+                    } else if acc.chars().all(|c| c.is_digit(10)) {
+                        Token::NumericLiteral(acc.clone())
+                    } else {
+                        Token::Identifier(acc.clone())
+                    };
+                    tokens.push(token);
+                    acc.clear();
+                }
+                in_quotes = true;
+            }
+        } else if in_quotes {
+            // 如果在引号内，则累积字符
+            quote_content.push(ch);
+        }
         // 检测反引号
-        if ch == '`' {
+        else if ch == '`' {
             if in_backticks {
                 // 如果已经在反引号内，则这是结束反引号
                 in_backticks = false;
@@ -217,6 +250,33 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
         } else if ch.is_alphanumeric() || ch == '_' {
             // 正常的标识符字符累积
             acc.push(ch);
+        } else if ch == '.' {
+            // 保存之前累积的标识符作为限定符
+            let qualifier = acc.clone();
+            acc.clear();
+
+            // 收集点号后的标识符
+            while let Some(&next_ch) = chars.peek() {
+                if next_ch.is_alphanumeric() || next_ch == '_' {
+                    chars.next();
+                    acc.push(next_ch);
+                } else {
+                    break;
+                }
+            }
+            
+            // 如果点号后有标识符，创建限定标识符
+            if !acc.is_empty() {
+                tokens.push(Token::QualifiedIdentifier {
+                    qualifier,
+                    name: acc.clone()
+                });
+                acc.clear();
+            } else {
+                // 处理错误情况：点号后没有标识符
+                tokens.push(Token::Identifier(qualifier));
+                tokens.push(Token::Punctuator('.'));
+            }
         } else {
             // 处理积累的普通标识符
             if !acc.is_empty() {
@@ -405,9 +465,12 @@ mod test {
         let tokens = tokenize(sql);
 
         dbg!(tokens);
-
-        
-        
-
     }   
+
+    #[test]
+    fn test_complex_tokens() {
+        let sql = "DELETE FROM employees e WHERE (e.department = 'IT' AND e.salary > 100000) OR (e.last_active < '2023-01-01' AND e.status = 'inactive') ORDER BY e.last_active DESC, e.name LIMIT 50";
+        let tokens = tokenize(sql);
+        dbg!(tokens);
+    }
 }

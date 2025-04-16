@@ -1,11 +1,12 @@
 use super::expr::{Expr,OrderByExpr,LimitClause};
-
+use super::common::TableReference;
 
 /// SELECT语句结构
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub struct SelectStatement {
     /// 选择的列
     pub columns: Vec<SelectColumn>,
+    pub distinct: bool, // false表示ALL，true表示DISTINCT
     /// FROM子句中的表
     pub from: TableReference,
     /// WHERE子句
@@ -21,15 +22,8 @@ pub struct SelectStatement {
 }
 
 
-/// 表示选择的表,暂时不考虑多个表
-#[derive(Debug, Clone)]
-pub struct TableReference {
-    pub name: String,
-    pub alias: Option<String>,
-}
-
 /// 表示选择的列
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub enum SelectColumn {
     /// 所有列 (*)
     Wildcard,
