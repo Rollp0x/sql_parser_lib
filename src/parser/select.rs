@@ -28,7 +28,7 @@ impl Parser {
         let name = match self.peek() {
             Some(Token::Identifier(ident)) => {
                 let column_name = ident.to_owned();
-                self.next();
+                self.consume_token();
                 column_name
             }
             _ => {
@@ -41,7 +41,7 @@ impl Parser {
         let alias = if self.match_keyword("AS") {
             if let Some(Token::Identifier(ident)) = self.peek() {
                 let alias_name = ident.to_owned();
-                self.next();
+                self.consume_token();
                 Some(alias_name)
             } else {
                 return Err(self.get_parse_error(&format!(
@@ -61,10 +61,9 @@ impl Parser {
         // 更清晰的写法
         let distinct = if self.match_keyword("DISTINCT") {
             true
-        } else if self.match_keyword("ALL") {
-            false
         } else {
-            false // 默认为非DISTINCT
+            self.match_keyword("ALL");
+            false
         };
         // 判断是否为*
         if self.match_operator("*") {

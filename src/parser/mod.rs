@@ -3,10 +3,10 @@ use crate::token::{Token,self};
 use std::error::Error;
 use std::fmt;
 
-mod expr;
-mod common;
-mod select;
-mod delete;
+pub mod expr;
+pub mod common;
+pub mod select;
+pub mod delete;
 
 // 解析错误
 #[derive(Debug)]
@@ -62,7 +62,7 @@ impl Parser {
     }
 
     // 消费当前token并返回它
-    pub fn next(&mut self) -> Option<Token> {
+    pub fn consume_token(&mut self) -> Option<Token> {
         if self.current < self.tokens.len() {
             let token = self.tokens[self.current].clone();
             self.current += 1;
@@ -95,33 +95,33 @@ impl Parser {
     pub fn match_punctuator(&mut self, punctuator: char) -> bool {
         if let Some(Token::Punctuator(p)) = self.peek() {
             if *p == punctuator {
-                self.next(); // 消费匹配的token
+                self.consume_token(); // 消费匹配的token
                 return true;
             }
         }
-        return false;
+        false
     }
 
     // 尝试匹配一个关键字
     pub fn match_keyword(&mut self, keyword: &str) -> bool {
         if let Some(Token::Keyword(k)) = self.peek() {
             if k.to_uppercase() == keyword.to_uppercase() {
-                self.next(); // 消费匹配的token
+                self.consume_token(); // 消费匹配的token
                 return true;
             }
         }
-        return false;
+        false
     }
 
     // 尝试匹配一个操作符
     pub fn match_operator(&mut self, operator: &str) -> bool {
         if let Some(Token::Operator(op)) = self.peek() {
             if op == operator {
-                self.next(); // 消费匹配的token
+                self.consume_token(); // 消费匹配的token
                 return true;
             }
         }
-        return false;
+        false
     }
 
     // 将token格式化为更可读的形式

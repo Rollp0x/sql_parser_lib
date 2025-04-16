@@ -7,14 +7,13 @@ const MAX_EXPR_DEPTH: usize = 100;
 /**
 * 递归下降解析器
 * parse_expr()
- → parse_logical_or()      // 优先级最低
-   → parse_logical_and()
-     → parse_comparison()
-       → parse_additive()
-         → parse_multiplicative()
-           → parse_primary()  // 优先级最高
+* → parse_logical_or()      // 优先级最低
+*   → parse_logical_and()
+*     → parse_comparison()
+*       → parse_additive()
+*         → parse_multiplicative()
+*           → parse_primary()  // 优先级最高
 */
-
 impl Parser {
     pub fn parse_expr(&mut self, depth: usize) -> Result<Expr, ParseError> {
         if depth > MAX_EXPR_DEPTH {
@@ -91,7 +90,7 @@ impl Parser {
         while let Some(token) = self.peek() {
             match token.clone() {
                 Token::Operator(op) if op == "+" || op == "-" => {
-                    self.next(); // 消费token
+                    self.consume_token(); // 消费token
 
                     let binary_op = if op == "+" {
                         BinaryOperator::Plus
@@ -120,7 +119,7 @@ impl Parser {
         while let Some(token) = self.peek() {
             match token.clone() {
                 Token::Operator(op) if op == "*" || op == "/" => {
-                    self.next(); // 消费token
+                    self.consume_token(); // 消费token
 
                     let binary_op = if op == "*" {
                         BinaryOperator::Multiply
@@ -148,7 +147,7 @@ impl Parser {
         if let Some(token) = self.peek() {
             match token.clone() {
                 Token::Operator(op) if op == "+" || op == "-" => {
-                    self.next(); // 消费操作符
+                    self.consume_token(); // 消费操作符
 
                     // 递归解析操作数
                     let operand = self.parse_unary(depth)?; // 递归处理连续的一元操作符
@@ -174,8 +173,7 @@ impl Parser {
 
     // 解析无法再分解的表达式
     fn parse_primary(&mut self, depth: usize) -> Result<Expr, ParseError> {
-        let c_token = self
-            .next()
+        let c_token = self.consume_token()
             .ok_or_else(|| self.get_parse_error("Expected primary expression, but found none"))?
             .clone();
 
@@ -221,7 +219,7 @@ impl Parser {
                 )))
             }
             // 括号表达式
-            Token::Punctuator(p) if p == '(' => {
+            Token::Punctuator('(') => {
                 let expr = self.parse_expr(depth + 1)?;
 
                 if !self.match_punctuator(')') {
@@ -239,7 +237,7 @@ impl Parser {
             // 处理其他可能的情况
             Token::Keyword(k) if k.to_uppercase() == "NULL" => Ok(Expr::Literal(Value::Null)),
             // 处理星号
-            Token::Punctuator(p) if p == '*' => Ok(Expr::Wildcard),
+            Token::Punctuator('*')  => Ok(Expr::Wildcard),
             // 如果没有匹配的情况，返回错误
             _ => Err(self.get_parse_error(&format!(
                 "Unexpected token in primary expression: {:?}",
@@ -262,7 +260,7 @@ impl Parser {
                 _ => None,
             };
             if r.is_some() {
-                self.next();
+                self.consume_token();
             }
             r
         } else {

@@ -1,11 +1,12 @@
 use super::{ParseError, Parser};
 use crate::ast::{
-    expr::{Expr, LimitClause, OrderByExpr},
+    expr::{LimitClause, OrderByExpr},
     common::TableReference,
 };
 use crate::token::Token;
 // 实现公共解析功能
 impl Parser {
+    /// 移动当前从句索引，返回新的索引或者顺序错误
     pub fn move_current_idx(
         &self, 
         current_idx: u8, 
@@ -29,13 +30,13 @@ impl Parser {
             })
         }
     }
-    // 解析表名
+    /// 解析表名
     pub fn parse_table_reference(&mut self,allow_as_keyword:bool) -> Result<TableReference, ParseError> {
         // 获取表名
         let name = match self.peek() {
             Some(Token::Identifier(ident)) => {
                 let name = ident.to_owned();
-                self.next();
+                self.consume_token();
                 name
             }
             _ => {
@@ -49,7 +50,7 @@ impl Parser {
         let alias = if allow_as_keyword && self.match_keyword("AS") {
             if let Some(Token::Identifier(ident)) = self.peek() {
                 let alias_name = ident.to_owned();
-                self.next();
+                self.consume_token();
                 Some(alias_name)
             } else {
                 return Err(self.get_parse_error(&format!(
@@ -59,7 +60,7 @@ impl Parser {
             }
         } else if let Some(Token::Identifier(ident)) = self.peek() {
             let alias = ident.clone();
-            self.next();
+            self.consume_token();
             Some(alias)
         } else {
             None
@@ -68,6 +69,7 @@ impl Parser {
         Ok(TableReference { name, alias })
     }
 
+    /// 解析order by子句
     pub fn parse_order_by(&mut self) -> Result<Vec<OrderByExpr>, ParseError> {
         let mut order_by = Vec::new();
         // 解析列列表
@@ -79,12 +81,8 @@ impl Parser {
                     expr: expr.clone(),
                     asc: false,
                 }
-            } else if self.match_keyword("ASC") {
-                OrderByExpr {
-                    expr: expr.clone(),
-                    asc: true,
-                }
             } else {
+                self.match_keyword("ASC");
                 OrderByExpr {
                     expr: expr.clone(),
                     asc: true,
@@ -99,6 +97,7 @@ impl Parser {
         Ok(order_by)
     }
 
+    /// 解析LIMIT子句
     pub fn parse_limit(&mut self) -> Result<LimitClause, ParseError> {
         // 解析LIMIT值
         let limit = if let Some(Token::NumericLiteral(value)) = self.peek() {
@@ -108,7 +107,7 @@ impl Parser {
                     self.peek()
                 ))
             })?;
-            self.next(); // 消费LIMIT值
+            self.consume_token(); // 消费LIMIT值
             limit_value
         } else {
             return Err(self.get_parse_error(&format!(
@@ -125,7 +124,7 @@ impl Parser {
                         self.peek()
                     ))
                 })?;
-                self.next(); // 消费OFFSET值
+                self.consume_token(); // 消费OFFSET值
                 Some(offset_value)
             } else {
                 return Err(self.get_parse_error(&format!(

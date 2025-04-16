@@ -107,7 +107,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
     for raw_word in processed.split_whitespace() {
         // 看最后一个字符是否是标点符号
         let  mut last_char = None;
-        if raw_word.len() > 0  {
+        if !raw_word.is_empty()  {
             let c = raw_word.chars().last().unwrap();
             if c == ',' || c == ';' {
                 last_char = Some(Token::Punctuator(c));
@@ -120,8 +120,8 @@ pub fn tokenize(input: &str) -> Vec<Token> {
         };
         // 如果 word 为空，则跳过
         if word.is_empty() {
-            if last_char.is_some() {
-                tokens.push(last_char.unwrap());
+            if let Some(t) = last_char {
+                tokens.push(t);
             }
             continue; // 跳过空单词
         }
@@ -134,7 +134,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             tokens.push(Token::Keyword(word.to_string()));
         }
         // 数字字面量（仅简单判断所有字符均为数字）
-        else if word.chars().all(|c| c.is_digit(10)) {
+        else if word.chars().all(|c| c.is_ascii_digit()) {
             tokens.push(Token::NumericLiteral(word.to_string()));
         }
         // 字符串字面量（简单检查是否以单引号包裹）
@@ -168,8 +168,8 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                 tokens.push(token);
             }
         }
-        if last_char.is_some() {
-            tokens.push(last_char.unwrap());
+        if let Some(t) = last_char {
+            tokens.push(t);
         }
     }
 
@@ -206,7 +206,7 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
                     // 处理之前的字符
                     let token = if KEYWORDS.contains(&acc.to_uppercase()) {
                         Token::Keyword(acc.clone())
-                    } else if acc.chars().all(|c| c.is_digit(10)) {
+                    } else if acc.chars().all(|c| c.is_ascii_digit()) {
                         Token::NumericLiteral(acc.clone())
                     } else {
                         Token::Identifier(acc.clone())
@@ -234,7 +234,7 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
                 if !acc.is_empty() {
                     let token = if KEYWORDS.contains(&acc.to_uppercase()) {
                         Token::Keyword(acc.clone())
-                    } else if acc.chars().all(|c| c.is_digit(10)) {
+                    } else if acc.chars().all(|c| c.is_ascii_digit()) {
                         Token::NumericLiteral(acc.clone())
                     } else {
                         Token::Identifier(acc.clone())
@@ -282,7 +282,7 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
             if !acc.is_empty() {
                 let token = if KEYWORDS.contains(&acc.to_uppercase()) {
                     Token::Keyword(acc.clone())
-                } else if acc.chars().all(|c| c.is_digit(10)) {
+                } else if acc.chars().all(|c| c.is_ascii_digit()) {
                     Token::NumericLiteral(acc.clone())
                 } else {
                     Token::Identifier(acc.clone())
@@ -309,7 +309,7 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
     if !acc.is_empty() {
         let token = if KEYWORDS.contains(&acc.to_uppercase()) {
             Token::Keyword(acc)
-        } else if acc.chars().all(|c| c.is_digit(10)) {
+        } else if acc.chars().all(|c| c.is_ascii_digit()) {
             Token::NumericLiteral(acc)
         } else {
             Token::Identifier(acc)
