@@ -171,6 +171,42 @@ impl Parser {
         self.parse_primary(depth)
     }
 
+    // 这里左括号已经解析了
+    fn parse_function_args(&mut self) -> Result<Vec<Expr>, ParseError> {
+        let mut args = Vec::new();
+
+        // 优化: 先检查是否为空参数列表
+        if self.match_punctuator(')') {
+            return Ok(args); // 空参数列表，直接返回
+        }
+
+        // 解析参数列表
+        loop {
+            // 解析参数
+            let arg = self.parse_expr(0)?;
+            args.push(arg);
+            
+            // 检查下一个token是逗号还是右括号
+            if self.match_punctuator(',') {
+                // 逗号后继续解析下一个参数
+                // 但要检查逗号后是否立即遇到右括号(错误的语法: "func(arg1, )")
+                if self.is_punctuator(')') {
+                    return Err(self.get_parse_error("Unexpected trailing comma in function arguments"));
+                }
+            } else if self.match_punctuator(')') {
+                // 右括号表示参数列表结束
+                break;
+            } else {
+                // 既不是逗号也不是右括号，语法错误
+                return Err(self.get_parse_error(
+                    "Expected comma or closing parenthesis after function argument"
+                ));
+            }
+        }
+
+        Ok(args)
+    }
+
     // 解析无法再分解的表达式
     fn parse_primary(&mut self, depth: usize) -> Result<Expr, ParseError> {
         let c_token = self.consume_token()
@@ -195,21 +231,22 @@ impl Parser {
                     }
                 }
             }
+            // 处理其他可能的情况
+            Token::Keyword(k) if k.to_uppercase() == "NULL" => Ok(Expr::Literal(Value::Null)),
+            Token::Keyword(k) if k.to_uppercase() == "DEFAULT" => Ok(Expr::Literal(Value::DEFAULT)),
             Token::StringLiteral(s) => Ok(Expr::Literal(Value::String(s))),
             // 标识符处理
             Token::Identifier(ident) => {
-                // todo 检查是否是函数调用
-                Ok(Expr::Identifier(ident.clone()))
-                // // 检查是否是函数调用
-                // if self.match_punctuator('(') {
-                //     let args = self.parse_function_args()?;
-                //     Ok(Expr::FunctionCall {
-                //         name: ident.clone(),
-                //         args,
-                //     })
-                // } else {
-                //     Ok(Expr::Identifier(ident.clone()))
-                // }
+                // 检查是否是函数调用
+                if self.match_punctuator('(') {
+                    let args = self.parse_function_args()?;
+                    Ok(Expr::FunctionCall {
+                        name: ident.clone(),
+                        args,
+                    })
+                } else {
+                    Ok(Expr::Identifier(ident.clone()))
+                }
             }
             // 处理带有限定符的标识符
             Token::QualifiedIdentifier { qualifier, name } => {
@@ -234,8 +271,7 @@ impl Parser {
                 // 如果上述检查通过，则右括号本身已经被消费
                 Ok(expr)
             }
-            // 处理其他可能的情况
-            Token::Keyword(k) if k.to_uppercase() == "NULL" => Ok(Expr::Literal(Value::Null)),
+            
             // 处理星号
             Token::Punctuator('*')  => Ok(Expr::Wildcard),
             // 如果没有匹配的情况，返回错误

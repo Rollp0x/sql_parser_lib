@@ -265,8 +265,15 @@ fn parse_single_identifier(identifier: &str) -> Vec<Token> {
                 }
             }
             
-            // 如果点号后有标识符，创建限定标识符
-            if !acc.is_empty() {
+            // 如果点号前后内容均为数字，则解析为浮点数
+            if qualifier.is_empty() || qualifier.chars().all(|c| c.is_ascii_digit())  {
+                // 构建完整的浮点数字符串
+                let float_str = format!("{}.{}", qualifier, acc);
+                tokens.push(Token::NumericLiteral(float_str));
+                acc.clear();
+            }
+            // 否则，如果点号后有内容，创建限定标识符
+            else if !acc.is_empty() {
                 tokens.push(Token::QualifiedIdentifier {
                     qualifier,
                     name: acc.clone()

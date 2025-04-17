@@ -5,7 +5,7 @@ use crate::ast::{
     delete::DeleteStatement,
 };
 
-// delete语句解析器接口
+/// delete语句解析器接口
 pub trait DeleteStatementParser {
     type Error;
     // 解析delete语句

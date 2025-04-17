@@ -25,6 +25,5 @@
     "TIME",
     "YEAR",
     "DATETIME",
-    "ENUM",
-    "SET"
+    "ENUM"
 ]

@@ -7,6 +7,7 @@ pub mod expr;
 pub mod common;
 pub mod select;
 pub mod delete;
+pub mod insert;
 
 // 解析错误
 #[derive(Debug)]
@@ -102,6 +103,13 @@ impl Parser {
         false
     }
 
+    pub fn is_punctuator(&self, punctuator: char) -> bool {
+        if let Some(Token::Punctuator(p)) = self.peek() {
+            return *p == punctuator;
+        }
+        false
+    }
+
     // 尝试匹配一个关键字
     pub fn match_keyword(&mut self, keyword: &str) -> bool {
         if let Some(Token::Keyword(k)) = self.peek() {
@@ -113,6 +121,13 @@ impl Parser {
         false
     }
 
+    pub fn is_keyword(&self, keyword: &str) -> bool {
+        if let Some(Token::Keyword(k)) = self.peek() {
+            return k.to_uppercase() == keyword.to_uppercase();
+        }
+        false
+    }
+
     // 尝试匹配一个操作符
     pub fn match_operator(&mut self, operator: &str) -> bool {
         if let Some(Token::Operator(op)) = self.peek() {
@@ -120,6 +135,12 @@ impl Parser {
                 self.consume_token(); // 消费匹配的token
                 return true;
             }
+        }
+        false
+    }
+    pub fn is_operator(&self, operator: &str) -> bool {
+        if let Some(Token::Operator(op)) = self.peek() {
+            return op == operator;
         }
         false
     }

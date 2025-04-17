@@ -95,6 +95,7 @@ pub enum Value {
     Float(f64),
     Boolean(bool),
     Null,
+    DEFAULT, // 用于DEFAULT关键字
 }
 
 
